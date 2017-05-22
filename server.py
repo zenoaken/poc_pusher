@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from os import environ
 import time
+import json
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -51,16 +52,19 @@ def presence_webhook():
 
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
+        print "----->>> Event: %s" % json.dumps(event)
         channel = event["name"]
         if channel.startswith("presence-user-"):
             user = channel.split("-")[2]
             user_status = user_status.get(user, {"status": "unknown", "time_ms": 0})
 
+            print "----->>> Timestamps: %s  -- %s" % (user_status["time_ms"], webhook_time_ms)
             # continue if we already have a most recent information
             if user_status["time_ms"] > webhook_time_ms:
                 continue
 
             status = "online" if event["name"] == "member_added" else "offline" if event["name"] == "member_removed" else None
+            print "----->>> New Status: %s" % status
 
             if status:
                 user_status[user] = {"status": status, "time_ms": webhook_time_ms}
