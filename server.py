@@ -1,6 +1,7 @@
 import pusher
 from flask import Flask, request, jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
+from os import environ
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -34,4 +35,4 @@ def pusher_auth():
     return response
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
