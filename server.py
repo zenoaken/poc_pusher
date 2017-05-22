@@ -40,7 +40,7 @@ def pusher_auth():
 
 
 @app.route("/api/channel/presence", methods=['POST'])
-def pusher_auth():
+def presence_webhook():
     global user_status
 
     webhook = pusher_client.validate_webhook(
