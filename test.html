@@ -32,22 +32,8 @@
         startPusher();
     } );
 
-    function setOnline() {
-        pusher.subscribe("presence-user-"+userName+"-connected");
-    }
-
-    function setOffline() {
-        pusher.unsubscribe("presence-user-"+userName+"-connected");
-    }
-
     function statusChanged(newStatus) {
-        if (newStatus == "online") {
-            setOnline();
-        } else if (newStatus == "offline") {
-            setOffline();
-        } else {
-            usersStatusChannel.trigger('client-status-changed', { user: userName, status: newStatus });
-        }
+        usersStatusChannel.trigger('client-status-changed', { user: userName, status: newStatus });
     }
 
     function startPusher() {
@@ -64,10 +50,31 @@
 
         usersStatusChannel = pusher.subscribe("private-user-status-changed");
         usersStatusChannel.bind('client-status-changed', function(data) {
-            alert(data.user + " is " + data.status);
+            updateUserConnected(data);
         });
 
+        pusher.subscribe("presence-user-"+userName+"-connected");
         statusChanged('online');
+    }
+
+    function updateUserConnected(data) {
+        if (data.user == userName) return;
+        var user = data.user;
+        var status = data.status;
+
+        var liID = "user-"+user+"-connected";
+        var ulID = "connected-users";
+
+        if (status == 'offline') {
+            $("#"+liID).remove();
+        } else {
+            var liContent = user + " (" + status + ")";
+            if ($("#"+liID).length == 0) {
+                $("#"+ulID).append("<li id='"+liID+"'>"+liContent+"</li>");
+            } else {
+                $("#"+liID).html(liContent);
+            }
+        }
     }
 
     function updateMemberOnTicket(member, ticket) {
@@ -181,12 +188,10 @@
             <option value="away">Away</option>
             <option value="meeting">Meeting</option>
             <option value="lunch">Lunch</option>
-            <option value="offline">Offline</option>
         </select>
     </div>
     <div id="users">
-        <ul>
-            <li id="usr-luiz">Luiz (online)</li>
+        <ul id="connected-users">
         </ul>
     </div>
 </div>

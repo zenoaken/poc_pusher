@@ -73,5 +73,9 @@ def presence_webhook():
 
     return "ok"
 
+@app.route("/users")
+def users():
+    return users_status
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
