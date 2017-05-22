@@ -2,13 +2,10 @@ import pusher
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from os import environ
-import time
 import json
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
-
-current_milli_time = lambda: int(round(time.time() * 1000))
 
 pusher_client = pusher.Pusher(
   app_id='341057',
@@ -20,21 +17,20 @@ pusher_client = pusher.Pusher(
 
 users_status = {}
 
-pusher_client.channels_info
-
 @app.route("/")
 def hello():
     return "Hello World!"
 
 @app.route("/api/pusher/auth", methods=['POST'])
 def pusher_auth():
+    user_name = request.environ['HTTP_X_CSRF_TOKEN']
     auth = pusher_client.authenticate(
         channel=request.form['channel_name'],
         socket_id=request.form['socket_id'],
         custom_data={
-            u'user_id': request.environ['HTTP_X_CSRF_TOKEN'],
+            u'user_id': user_name,
             u'user_info': {
-                u'name': request.environ['HTTP_X_CSRF_TOKEN']
+                u'name': user_name
             }
         }
     )
@@ -90,8 +86,9 @@ def client_events_webhook():
     for event in webhook["events"]:
         channel = event["channel"]
         if channel == "private-user-status-changed":
-            user = event["data"]["user"]
-            status = event["data"]["status"]
+            event_data = json.loads(event["data"])
+            user = event_data["user"]
+            status = event_data["status"]
             current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
 
             # continue if we already have a most recent information
@@ -99,13 +96,15 @@ def client_events_webhook():
                 continue
 
             users_status[user] = {"status": status, "time_ms": webhook_time_ms}
+        elif channel.startswith("presence-users-on-ticket-"):
+            # TODO set user state on resource (e.g. viewing, typing)
+            pass
 
     return "ok"
 
 
 @app.route("/api/users")
 def users():
-
     return jsonify(users_status)
 
 if __name__ == "__main__":
