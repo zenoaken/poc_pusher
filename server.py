@@ -53,7 +53,7 @@ def presence_webhook():
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
         print "----->>> Event: %s" % json.dumps(event)
-        channel = event["name"]
+        channel = event["channel"]
         if channel.startswith("presence-user-"):
             user = channel.split("-")[2]
             user_status = user_status.get(user, {"status": "unknown", "time_ms": 0})
