@@ -15,6 +15,8 @@
     var ticketsEventChannels = new Object();
     var presenceEventChannels = new Object();
     var currentStatus = null;
+    var urlParams = new URLSearchParams(window.location.search);
+
     // Enable pusher logging - don't include this in production
     Pusher.logToConsole = true;
 
@@ -27,7 +29,7 @@
         $( "#tabs" ).tabs();
         $( "#menu" ).tabs();
 
-        userName = prompt("Please enter your name", "");
+        userName = (urlParams.has('user')) ? urlParams.get('user') : prompt("Please enter your name", "");
         $('#lblStatus').html(userName + " Status:");
         startPusher();
     } );
@@ -55,6 +57,7 @@
 
         pusher.subscribe("presence-user-"+userName+"-connected");
         statusChanged('online');
+        refreshUsers();
     }
 
     function updateUserConnected(user, status) {
@@ -171,13 +174,14 @@
 
         xmlHttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
-                alert(this.responseText);
                 users = JSON.parse(this.responseText);
-                //document.getElementById("demo").innerHTML = myObj.name;
+                for (user in users) {
+                    updateUserConnected(user, users[user].status);
+                }
             }
         };
 
-        xmlHttp.open( "GET", 'https://fathomless-gorge-79203.herokuapp.com/users', true); // false for synchronous request
+        xmlHttp.open( "GET", 'https://fathomless-gorge-79203.herokuapp.com/api/users', true); // false for synchronous request
         xmlHttp.send( null );
     }
   </script>

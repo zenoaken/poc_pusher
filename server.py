@@ -20,6 +20,8 @@ pusher_client = pusher.Pusher(
 
 users_status = {}
 
+pusher_client.channels_info
+
 @app.route("/")
 def hello():
     return "Hello World!"
@@ -30,7 +32,7 @@ def pusher_auth():
         channel=request.form['channel_name'],
         socket_id=request.form['socket_id'],
         custom_data={
-            u'user_id': request.form['socket_id'],
+            u'user_id': request.environ['HTTP_X_CSRF_TOKEN'],
             u'user_info': {
                 u'name': request.environ['HTTP_X_CSRF_TOKEN']
             }
@@ -40,7 +42,7 @@ def pusher_auth():
     return response
 
 
-@app.route("/api/channel/presence", methods=['POST'])
+@app.route("/api/hooks/presence", methods=['POST'])
 def presence_webhook():
     global users_status
 
@@ -52,26 +54,54 @@ def presence_webhook():
 
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
-        print "----->>> Event: %s" % json.dumps(event)
         channel = event["channel"]
         if channel.startswith("presence-user-"):
             user = channel.split("-")[2]
-            user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
+            current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
 
-            print "----->>> Timestamps: %s  -- %s" % (user_status["time_ms"], webhook_time_ms)
             # continue if we already have a most recent information
-            if user_status["time_ms"] > webhook_time_ms:
+            if current_user_status["time_ms"] > webhook_time_ms:
                 continue
 
             status = "online" if event["name"] == "member_added" else "offline" if event["name"] == "member_removed" else None
-            print "----->>> New Status: %s" % status
 
             if status:
                 users_status[user] = {"status": status, "time_ms": webhook_time_ms}
                 pusher_client.trigger('private-user-status-changed', 'client-status-changed',
                                       {'user': user, 'status': status})
+        elif channel.startswith("presence-users-on-ticket-"):
+            # TODO build inverted index resources being used by user
+            pass
 
     return "ok"
+
+
+@app.route("/api/hooks/client-events", methods=['POST'])
+def client_events_webhook():
+    global users_status
+
+    webhook = pusher_client.validate_webhook(
+        key=request.headers.get('X-Pusher-Key'),
+        signature=request.headers.get('X-Pusher-Signature'),
+        body=request.data
+    )
+
+    webhook_time_ms = webhook["time_ms"]
+    for event in webhook["events"]:
+        channel = event["channel"]
+        if channel == "private-user-status-changed":
+            user = event["data"]["user"]
+            status = event["data"]["status"]
+            current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
+
+            # continue if we already have a most recent information
+            if current_user_status["time_ms"] > webhook_time_ms:
+                continue
+
+            users_status[user] = {"status": status, "time_ms": webhook_time_ms}
+
+    return "ok"
+
 
 @app.route("/api/users")
 def users():
