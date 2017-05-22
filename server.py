@@ -2,9 +2,12 @@ import pusher
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from os import environ
+import time
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 pusher_client = pusher.Pusher(
   app_id='341057',
@@ -13,6 +16,8 @@ pusher_client = pusher.Pusher(
   cluster='eu',
   ssl=True
 )
+
+users_status = {}
 
 @app.route("/")
 def hello():
@@ -31,8 +36,38 @@ def pusher_auth():
         }
     )
     response = jsonify(auth)
-    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response
+
+
+@app.route("/api/channel/presence", methods=['POST'])
+def pusher_auth():
+    global user_status
+
+    webhook = pusher_client.validate_webhook(
+        key=request.headers.get('X-Pusher-Key'),
+        signature=request.headers.get('X-Pusher-Signature'),
+        body=request.data
+    )
+
+    webhook_time_ms = webhook["time_ms"]
+    for event in webhook["events"]:
+        channel = event["name"]
+        if channel.startswith("presence-user-"):
+            user = channel.split("-")[2]
+            user_status = user_status.get(user, {"status": "unknown", "time_ms": 0})
+
+            # continue if we already have a most recent information
+            if user_status["time_ms"] > webhook_time_ms:
+                continue
+
+            status = "online" if event["name"] == "member_added" else "offline" if event["name"] == "member_removed" else None
+
+            if status:
+                user_status[user] = {"status": status, "time_ms": webhook_time_ms}
+                pusher_client.trigger('private-user-status-changed', 'status_changed',
+                                      {'user': user, 'status': status})
+
+    return True
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
