@@ -42,7 +42,7 @@ def pusher_auth():
 
 @app.route("/api/channel/presence", methods=['POST'])
 def presence_webhook():
-    global user_status
+    global users_status
 
     webhook = pusher_client.validate_webhook(
         key=request.headers.get('X-Pusher-Key'),
@@ -56,7 +56,7 @@ def presence_webhook():
         channel = event["channel"]
         if channel.startswith("presence-user-"):
             user = channel.split("-")[2]
-            user_status = user_status.get(user, {"status": "unknown", "time_ms": 0})
+            user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
 
             print "----->>> Timestamps: %s  -- %s" % (user_status["time_ms"], webhook_time_ms)
             # continue if we already have a most recent information
@@ -67,7 +67,7 @@ def presence_webhook():
             print "----->>> New Status: %s" % status
 
             if status:
-                user_status[user] = {"status": status, "time_ms": webhook_time_ms}
+                users_status[user] = {"status": status, "time_ms": webhook_time_ms}
                 pusher_client.trigger('private-user-status-changed', 'status_changed',
                                       {'user': user, 'status': status})
 
