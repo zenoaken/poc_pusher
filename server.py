@@ -67,7 +67,7 @@ def presence_webhook():
                 pusher_client.trigger('private-user-status-changed', 'status_changed',
                                       {'user': user, 'status': status})
 
-    return True
+    return "ok"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
