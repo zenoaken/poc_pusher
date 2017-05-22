@@ -1,0 +1,8 @@
+{
+  "name": "Pusher Presence Hook",
+  "description": "A presence hook or users channel.",
+  "image": "heroku/python",
+//  "repository": "https://github.com/heroku/python-getting-started",
+  "keywords": ["python", "flask", "pusher" ]
+//  "addons": [ "heroku-postgresql" ]
+}

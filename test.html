@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<head>
+  <title>Pusher Test</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jQuery UI Tabs - Default functionality</title>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <!--<link rel="stylesheet" href="/resources/demos/style.css">-->
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="https://js.pusher.com/4.0/pusher.min.js"></script>
+  <script>
+    var userName = "";
+    var ticketsStatus = new Object();
+    var ticketsEventChannels = new Object();
+    var presenceEventChannels = new Object();
+    var currentStatus = null;
+    // Enable pusher logging - don't include this in production
+    Pusher.logToConsole = true;
+
+    var pusher = null;
+    var ticketPresenceChannelPrefix = "presence-users-on-ticket-";
+    var ticketEventsChannelPrefix = "private-events-on-ticket-";
+
+    $( function() {
+        $( "#tabs" ).tabs();
+        $( "#menu" ).tabs();
+
+        userName = prompt("Please enter your name", "");
+        $('#lblStatus').html(userName + " Status:");
+        startPusher();
+    } );
+
+    function statusChanged(newStatus) {
+        if (currentStatus != null) {
+            pusher.unsubscribe("presence-user-"+userName+currentStatus);
+        }
+        pusher.subscribe("presence-user-"+userName+newStatus);
+        currentStatus = newStatus;
+    }
+
+    function startPusher() {
+        pusher = new Pusher('ab8cf6e917558807f315', {
+            cluster: 'eu',
+            encrypted: true,
+            authEndpoint: 'http://127.0.0.1:5000/api/pusher/auth',
+            auth: {
+            headers: {
+              'X-CSRF-Token': userName
+            }
+          }
+        });
+
+        statusChanged('online');
+    }
+
+    function updateMemberOnTicket(member, ticket) {
+        var memberName = member.info.name;
+        if (memberName == userName) return;
+        var liID = "user-"+memberName+"-on-ticket"+ticket;
+        if ($("#"+liID).length == 0) {
+            var ulID = "usersOn"+ticket;
+            $("#"+ulID).append("<li id='"+liID+"'>"+memberName+"</li>");
+        }
+    }
+
+    function removeMemberFromTicket(member, ticket) {
+        var memberName = member.info.name;
+        if (memberName == userName) return;
+        var liID = "user-"+memberName+"-on-ticket"+ticket;
+        $("#"+liID).remove();
+    }
+
+    function ticketContentChange(ticket, content) {
+        var status = ticketsStatus[ticket];
+
+        if (content != "" && status!="editing") {
+            ticketsStatus[ticket] = "editing";
+            ticketsEventChannels[ticket].trigger('client-editing', { user: userName });
+        }
+
+        if (content == "" && status=="editing") {
+            ticketsStatus[ticket] = "viewing";
+            ticketsEventChannels[ticket].trigger('client-viewing', { user: userName });
+        }
+    }
+
+    function subscribeToTicket(ticket) {
+        var presenceChannel = pusher.subscribe(ticketPresenceChannelPrefix+ticket);
+        var eventChannel = pusher.subscribe(ticketEventsChannelPrefix+ticket);
+
+        ticketsEventChannels[ticket] = eventChannel;
+        presenceEventChannels[ticket] = presenceChannel;
+
+        presenceChannel.bind('pusher:subscription_succeeded', function(members) {
+          members.each(function(member) {
+            updateMemberOnTicket(member, ticket);
+          });
+        })
+
+        presenceChannel.bind('pusher:member_added', function(member) {
+            updateMemberOnTicket(member, ticket);
+        });
+
+        presenceChannel.bind('pusher:member_removed', function(member) {
+            removeMemberFromTicket(member, ticket);
+        });
+
+        eventChannel.bind('client-editing', function(data) {
+            var liID = "user-"+data.user+"-on-ticket"+ticket;
+            $("#"+liID).html(data.user+" <strong>(editing)</strong>");
+        });
+
+        eventChannel.bind('client-viewing', function(data) {
+            var liID = "user-"+data.user+"-on-ticket"+ticket;
+            $("#"+liID).html(data.user);
+        });
+    }
+
+    function unsubscribeFromTicket(ticket) {
+        pusher.unsubscribe(ticketPresenceChannelPrefix+ticket);
+        pusher.unsubscribe(ticketEventsChannelPrefix+ticket);
+    }
+
+    function openTicket(ticket) {
+        var lnkId = "lnkTk"+ticket;
+
+        if ($('#'+lnkId).length == 0) {
+            $("#tickets").append("<li id='li"+lnkId+"'><a id="+lnkId+" href='#tk-"+ticket+"'>Ticket #"+ticket+"</a></li>");
+            $('#tabs').append("<div id='tk-"+ticket+"'><div style='float: left; width: 20%; background-color: #f5f5f5;'><p>Also on this ticket</p><ul name='usersOn"+ticket+"' id='usersOn"+ticket+"'></ul></div><div style='float: right; width: 75%;'>Content of Ticket #"+ticket+"<br/><textarea onkeyup='javascript: ticketContentChange("+ticket+", $(\"#content"+ticket+"\").val());' style='width: 100%;' id='content"+ticket+"' name='content"+ticket+"'></textarea><button onclick='javascript: closeTicket("+ticket+");'>Close Ticket</button></div></div>");
+            $( "#tabs" ).tabs("refresh");
+            var n = $('#tickets > li').size();
+            $( "#tabs" ).tabs("option", "active", n-1);
+            subscribeToTicket(ticket);
+        } else {
+            $('#'+lnkId).click();
+        }
+    }
+
+    function closeTicket(ticket) {
+        var lnkId = "lnkTk"+ticket;
+        $("#li"+lnkId).remove();
+        $("#tk-"+ticket).remove();
+        unsubscribeFromTicket(ticket);
+        $( "#tabs" ).tabs("refresh");
+    }
+  </script>
+</head>
+<body>
+
+<div id="menu" style="float: left; width: 18%;">
+    <ul>
+        <li><a href="#menu-1">Menu</a></li>
+        <li><a href="#users">Users</a></li>
+    </ul>
+    <div id="menu-1">
+        <label for="ticket">Open ticket #:</label>
+        <input name="ticket" id="ticket" value="" />
+        <button onclick="javascript: openTicket($('#ticket').val());">Open</button>
+
+        <br /><br />
+        <label id="lblStatus" for="status">Status:</label>
+        <select name="status" id="status" onchange="javascript: statusChanged($(this).val());">
+            <option value="online">Online</option>
+            <option value="away">Away</option>
+            <option value="meeting">Meeting</option>
+            <option value="lunch">Lunch</option>
+            <option value="offline">Offline</option>
+        </select>
+    </div>
+    <div id="users">
+        <ul>
+            <li id="usr-luiz">Luiz (online)</li>
+        </ul>
+    </div>
+</div>
+
+<div id="tabs" style="float: right; width: 80%;">
+  <ul id="tickets">
+  </ul>
+</div>
+</body>
