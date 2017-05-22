@@ -46,13 +46,8 @@
         } else if (newStatus == "offline") {
             setOffline();
         } else {
-            usersStatusChannel.trigger('status_changed', { user: userName, status: newStatus });
+            usersStatusChannel.trigger('client-status-changed', { user: userName, status: newStatus });
         }
-        //if (currentStatus != null) {
-          //  pusher.unsubscribe("presence-user-"+userName+"-"+currentStatus);
-        //}
-        //pusher.subscribe("presence-user-"+userName+"-"+newStatus);
-        //currentStatus = newStatus;
     }
 
     function startPusher() {
@@ -68,7 +63,7 @@
         });
 
         usersStatusChannel = pusher.subscribe("private-user-status-changed");
-        usersStatusChannel.bind('status_changed', function(data) {
+        usersStatusChannel.bind('client-status-changed', function(data) {
             alert(data.user + " is " + data.status);
         });
 

@@ -68,7 +68,7 @@ def presence_webhook():
 
             if status:
                 users_status[user] = {"status": status, "time_ms": webhook_time_ms}
-                pusher_client.trigger('private-user-status-changed', 'status_changed',
+                pusher_client.trigger('private-user-status-changed', 'client-status-changed',
                                       {'user': user, 'status': status})
 
     return "ok"
