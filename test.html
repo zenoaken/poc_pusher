@@ -50,17 +50,15 @@
 
         usersStatusChannel = pusher.subscribe("private-user-status-changed");
         usersStatusChannel.bind('client-status-changed', function(data) {
-            updateUserConnected(data);
+            updateUserConnected(data.user, data.status);
         });
 
         pusher.subscribe("presence-user-"+userName+"-connected");
         statusChanged('online');
     }
 
-    function updateUserConnected(data) {
-        if (data.user == userName) return;
-        var user = data.user;
-        var status = data.status;
+    function updateUserConnected(user, status) {
+        if (user == userName) return;
 
         var liID = "user-"+user+"-connected";
         var ulID = "connected-users";
@@ -167,6 +165,21 @@
         unsubscribeFromTicket(ticket);
         $( "#tabs" ).tabs("refresh");
     }
+
+    function refreshUsers() {
+        var xmlHttp = new XMLHttpRequest();
+
+        xmlHttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                alert(this.responseText);
+                users = JSON.parse(this.responseText);
+                //document.getElementById("demo").innerHTML = myObj.name;
+            }
+        };
+
+        xmlHttp.open( "GET", 'https://fathomless-gorge-79203.herokuapp.com/users', true); // false for synchronous request
+        xmlHttp.send( null );
+    }
   </script>
 </head>
 <body>
@@ -191,6 +204,7 @@
         </select>
     </div>
     <div id="users">
+        <button onclick="javascript: refreshUsers();">refresh</button>
         <ul id="connected-users">
         </ul>
     </div>

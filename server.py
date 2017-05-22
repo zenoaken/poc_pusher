@@ -73,8 +73,9 @@ def presence_webhook():
 
     return "ok"
 
-@app.route("/users")
+@app.route("/api/users")
 def users():
+
     return jsonify(users_status)
 
 if __name__ == "__main__":
