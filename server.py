@@ -102,6 +102,7 @@ def presence_webhook():
 
             if status:
                 if status == "available":
+                    current_status["name"] = user
                     current_status["status"] = status
                     current_status["time_ms"] = webhook_time_ms
                     get_users_on_channel(product)[user] = current_status
@@ -180,7 +181,7 @@ def users_in_resource():
 
 
 @app.route("/api/user/<username>/resources")
-def resources_per_user(username):
+def resources_user(username):
     resources = filter(
         lambda resource: resource["type"] == request.args.get('type'),
         get_resources_per_user(username).values()
