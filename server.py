@@ -107,11 +107,13 @@ def client_events_webhook():
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
         channel = event["channel"]
+
+        event_data = json.loads(event["data"])
+        user = event_data["user"]
+        current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
+
         if channel == "private-user-status-changed":
-            event_data = json.loads(event["data"])
-            user = event_data["user"]
             status = event_data["status"]
-            current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
 
             # continue if we already have a most recent information
             if current_user_status["time_ms"] > webhook_time_ms:
@@ -119,7 +121,6 @@ def client_events_webhook():
 
             users_status[user] = {"status": status, "time_ms": webhook_time_ms}
         elif channel.startswith("presence-users-on-resource-"):
-            # TODO set user state on resource (e.g. viewing, typing)
             resource_type, resource_id = channel.split("-")[4:6]
             resource_key = "%s_%s" % (resource_type, resource_id)
 
