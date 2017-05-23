@@ -25,7 +25,7 @@ def hello():
 
 
 def get_user_status(username):
-    return users_status.get(username, {"name": username, "status": "unknown", "time_ms": 0})
+    return users_status.get(username, {"name": username, "status": "unknown", "time_ms": 0, "resources": defaultdict(dict)})
 
 
 @app.route("/api/pusher/auth", methods=['POST'])
@@ -75,7 +75,7 @@ def presence_webhook():
                     current_user_status["time_ms"] = webhook_time_ms
                     users_status[user] = current_user_status
                 elif status == "offline":
-                    users_status.pop(user)
+                    users_status.pop(user, None)
                 pusher_client.trigger('private-user-status-changed', 'client-status-changed',
                                       {'user': user, 'status': status})
         elif channel.startswith("presence-users-on-resource-"):
@@ -83,13 +83,13 @@ def presence_webhook():
             resource_key = "%s_%s" % (resource_type, resource_id)
 
             if event["name"] == "member_added":
-                current_user_status[resource_key] = {
+                current_user_status["resources"][resource_key] = {
                     "type": resource_type,
                     "id": resource_id,
                     "action": "viewing"
                 }
             elif event["name"] == "member_removed":
-                current_user_status.pop(resource_key)
+                current_user_status["resources"].pop(resource_key, None)
 
     return "ok"
 
@@ -123,8 +123,8 @@ def client_events_webhook():
             resource_type, resource_id = channel.split("-")[4:6]
             resource_key = "%s_%s" % (resource_type, resource_id)
 
-            if current_user_status[resource_key]:
-                current_user_status[resource_key]["action"] = event["name"].split("-")[-1]
+            if current_user_status["resources"][resource_key]:
+                current_user_status["resources"][resource_key]["action"] = event["name"].split("-")[-1]
 
     return "ok"
 
