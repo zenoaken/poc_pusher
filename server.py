@@ -37,6 +37,7 @@ def clean():
     users_on_channel = {}
     channels_per_user = {}
     resources_per_user = {}
+    return "done"
 
 
 def get_users_on_channel(channel):
