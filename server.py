@@ -1,9 +1,8 @@
 import pusher
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from os import environ
 import json
-from collections import defaultdict
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -24,8 +23,12 @@ resources_per_user = {}
 
 
 @app.route("/")
-def hello():
+def index():
     return "Agent Presence Test Server"
+
+@app.route('/app')
+def app_page():
+    return render_template('app.html')
 
 
 def get_users_on_channel(channel):
