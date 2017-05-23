@@ -83,6 +83,9 @@ def presence_webhook():
         body=request.data
     )
 
+    if not webhook:
+        return
+
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
         channel = event["channel"]
@@ -135,6 +138,9 @@ def client_events_webhook():
         signature=request.headers.get('X-Pusher-Signature'),
         body=request.data
     )
+
+    if not webhook:
+        return
 
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
