@@ -62,7 +62,10 @@
     }
 
     function updateUserConnected(user, status) {
-        if (user == userName || user == 'undefined') return;
+        if (user == userName) {
+            $('#status').val(status);
+            return;
+        }
 
         var liID = "user-"+user+"-connected";
         var ulID = "connected-users";
