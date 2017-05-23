@@ -172,8 +172,8 @@
         xmlHttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 users = JSON.parse(this.responseText);
-                for (user in users) {
-                    updateUserConnected(user['name'], user['status']);
+                for (i = 0; i < users.length; i++) {
+                    updateUserConnected(users[i].name, users[i].status);
                 }
             }
         };
