@@ -71,7 +71,9 @@ def presence_webhook():
 
             if status:
                 if status == "online":
-                    users_status[user] = {"status": status, "time_ms": webhook_time_ms}
+                    current_user_status["status"] = status
+                    current_user_status["time_ms"] = webhook_time_ms
+                    users_status[user] = current_user_status
                 elif status == "offline":
                     users_status.pop(user)
                 pusher_client.trigger('private-user-status-changed', 'client-status-changed',
