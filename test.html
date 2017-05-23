@@ -20,7 +20,7 @@
     Pusher.logToConsole = true;
 
     var pusher = null;
-    var ticketPresenceChannelPrefix = "presence-users-on-ticket-";
+    var ticketPresenceChannelPrefix = "presence-users-on-resource-ticket-";
     var usersStatusChannel = null;
 
     $( function() {
@@ -170,7 +170,7 @@
             if (this.readyState == 4 && this.status == 200) {
                 users = JSON.parse(this.responseText);
                 for (user in users) {
-                    updateUserConnected(user, users[user].status);
+                    updateUserConnected(user.name, user.status);
                 }
             }
         };

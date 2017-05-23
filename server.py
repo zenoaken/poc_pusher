@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from os import environ
 import json
+from collections import defaultdict
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -15,11 +16,17 @@ pusher_client = pusher.Pusher(
   ssl=True
 )
 
+
 users_status = {}
 
 @app.route("/")
 def hello():
     return "Hello World!"
+
+
+def get_user_status(username):
+    return users_status.get(username, {"name": username, "status": "unknown", "time_ms": 0})
+
 
 @app.route("/api/pusher/auth", methods=['POST'])
 def pusher_auth():
@@ -51,23 +58,36 @@ def presence_webhook():
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
         channel = event["channel"]
-        if channel.startswith("presence-user-"):
-            user = channel.split("-")[2]
-            current_user_status = users_status.get(user, {"status": "unknown", "time_ms": 0})
+        user = event["user_id"]
+        current_user_status = get_user_status(user)
 
+        if channel.startswith("presence-user-"):
             # continue if we already have a most recent information
             if current_user_status["time_ms"] > webhook_time_ms:
                 continue
 
-            status = "online" if event["name"] == "member_added" else "offline" if event["name"] == "member_removed" else None
+            status = "online" if event["name"] == "member_added" else "offline" if event[
+                                                                                       "name"] == "member_removed" else None
 
             if status:
-                users_status[user] = {"status": status, "time_ms": webhook_time_ms}
+                if status == "online":
+                    users_status[user] = {"status": status, "time_ms": webhook_time_ms}
+                elif status == "offline":
+                    users_status.pop(user)
                 pusher_client.trigger('private-user-status-changed', 'client-status-changed',
                                       {'user': user, 'status': status})
-        elif channel.startswith("presence-users-on-ticket-"):
-            # TODO build inverted index resources being used by user
-            pass
+        elif channel.startswith("presence-users-on-resource-"):
+            resource_type, resource_id = channel.split("-")[4:6]
+            resource_key = "%s_%s" % (resource_type, resource_id)
+
+            if event["name"] == "member_added":
+                current_user_status[resource_key] = {
+                    "type": resource_type,
+                    "id": resource_id,
+                    "action": "viewing"
+                }
+            elif event["name"] == "member_removed":
+                current_user_status.pop(resource_key)
 
     return "ok"
 
@@ -96,16 +116,25 @@ def client_events_webhook():
                 continue
 
             users_status[user] = {"status": status, "time_ms": webhook_time_ms}
-        elif channel.startswith("presence-users-on-ticket-"):
+        elif channel.startswith("presence-users-on-resource-"):
             # TODO set user state on resource (e.g. viewing, typing)
-            pass
+            resource_type, resource_id = channel.split("-")[4:6]
+            resource_key = "%s_%s" % (resource_type, resource_id)
+
+            if current_user_status[resource_key]:
+                current_user_status[resource_key]["action"] = event["name"].split("-")[-1]
 
     return "ok"
 
 
 @app.route("/api/users")
 def users():
-    return jsonify(users_status)
+    return jsonify(users_status.values())
+
+
+@app.route("/api/user/<username>/resources")
+def user_resources(username):
+    return jsonify(users_status.get(username, {}).get("resources", {}).values())
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
