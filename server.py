@@ -84,7 +84,7 @@ def presence_webhook():
     )
 
     if not webhook:
-        return
+        return "ok"
 
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
@@ -140,7 +140,7 @@ def client_events_webhook():
     )
 
     if not webhook:
-        return
+        return "ok"
 
     webhook_time_ms = webhook["time_ms"]
     for event in webhook["events"]:
