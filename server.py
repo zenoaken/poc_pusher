@@ -31,6 +31,14 @@ def app_page():
     return render_template('app.html')
 
 
+@app.route("/clean")
+def clean():
+    global users_on_channel, channels_per_user, resources_per_user
+    users_on_channel = {}
+    channels_per_user = {}
+    resources_per_user = {}
+
+
 def get_users_on_channel(channel):
     if not users_on_channel.get(channel):
         users_on_channel[channel] = {}
