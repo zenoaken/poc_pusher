@@ -125,7 +125,7 @@ def client_events_webhook():
             resource_key = "%s_%s" % (resource_type, resource_id)
 
             if current_user_status["resources"][resource_key]:
-                current_user_status["resources"][resource_key]["action"] = event["name"].split("-")[-1]
+                current_user_status["resources"][resource_key]["action"] = event["event"].split("-")[-1]
 
     return "ok"
 
