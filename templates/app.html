@@ -181,6 +181,10 @@
         xmlHttp.open( "GET", serverUrl+'/api/channel/'+productName+'/users', true); // false for synchronous request
         xmlHttp.send( null );
     }
+
+    function broadcastStatus() {
+        usersStatusChannel.trigger('client-broadcast-status', { user: userName, status: $('#status').val() });
+    }
   </script>
 </head>
 <body>
@@ -205,6 +209,8 @@
             <option value="meeting">Meeting</option>
             <option value="lunch">Lunch</option>
         </select>
+        <br/>
+        <button onclick="javascript: broadcastStatus();">Broadcast Status</button>
     </div>
     <div id="users">
         <button onclick="javascript: refreshUsers();">refresh</button>

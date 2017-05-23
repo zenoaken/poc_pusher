@@ -126,7 +126,7 @@ def presence_webhook():
                     get_users_on_channel(product).pop(user, None)
                     get_channels_per_user(user).pop(product, None)
                 pusher_client.trigger("private-user-status-changed-on-%s" % product, 'client-status-changed',
-                                      {'user': user, 'status': status})
+                                      {'user': user, 'status': status, product: product})
         elif channel.startswith("presence-users-on-resource-"):
             resource_type, resource_id = channel.split("-")[4:6]
             resource_key = "%s_%s" % (resource_type, resource_id)
@@ -162,17 +162,22 @@ def client_events_webhook():
         user = event_data["user"]
 
         if channel.startswith("private-user-status-changed-on-"):
-            product = channel.split("-")[-1]
-            status = event_data["status"]
+            if event["event"] == "client-broadcast-status":
+                for product in get_channels_per_user(user).iterkeys():
+                    pusher_client.trigger("private-user-status-changed-on-%s" % product, 'client-status-changed',
+                                          {'user': user, 'status': event_data["status"], product: product})
+            elif event["event"] == "client-status-changed":
+                product = channel.split("-")[-1]
+                status = event_data["status"]
 
-            current_status = get_user_on_channel(product, user)
+                current_status = get_user_on_channel(product, user)
 
-            # continue if we already have a most recent information
-            if not current_status or current_status["time_ms"] > webhook_time_ms:
-                continue
+                # continue if we already have a most recent information
+                if not current_status or current_status["time_ms"] > webhook_time_ms:
+                    continue
 
-            current_status["status"] = status
-            current_status["time_ms"] = webhook_time_ms
+                current_status["status"] = status
+                current_status["time_ms"] = webhook_time_ms
         elif channel.startswith("presence-users-on-resource-"):
             resource_type, resource_id = channel.split("-")[4:6]
             resource_key = "%s_%s" % (resource_type, resource_id)
