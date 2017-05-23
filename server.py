@@ -167,31 +167,42 @@ def client_events_webhook():
 
 @app.route("/api/users")
 def users():
-    return jsonify(channels_per_user.values())
-
-
-@app.route("/api/resources")
-def resources_in_use():
-    return jsonify(resources_per_user.keys())
-
-
-@app.route("/api/resource/<type>/<id>/presence")
-def users_in_resource():
-    raise NotImplementedError
+    return jsonify(channels_per_user)
 
 
 @app.route("/api/user/<username>/resources")
 def resources_user(username):
-    resources = filter(
-        lambda resource: resource["type"] == request.args.get('type'),
-        get_resources_per_user(username).values()
-    ) if request.args.get('type') else get_resources_per_user(username).values()
-    return jsonify(resources)
+    return jsonify(
+        filter(
+            lambda resource: resource["type"] == request.args.get('type'),
+            get_resources_per_user(username).values()
+        ) if request.args.get('type') else get_resources_per_user(username).values()
+    )
+
+
+@app.route("/api/user/<username>")
+def user(username):
+    return jsonify(get_channels_per_user(username))
+
+
+# @app.route("/api/resources")
+# def resources_in_use():
+#     return jsonify(resources_per_user.keys())
+#
+#
+# @app.route("/api/resource/<type>/<id>/presence")
+# def users_in_resource():
+#     raise NotImplementedError
 
 
 @app.route("/api/channel/<channel>/users")
 def user_in_channel(channel):
-    return jsonify(get_users_on_channel(channel).values())
+    return jsonify(
+        filter(
+            lambda user: user["status"] == request.args.get("status"),
+            get_users_on_channel(channel).values()
+        ) if request.args.get("status") else get_users_on_channel(channel).values()
+    )
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=environ.get("PORT", 5000))
