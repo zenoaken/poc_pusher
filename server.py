@@ -159,7 +159,7 @@ def client_events_webhook():
             resource_type, resource_id = channel.split("-")[4:6]
             resource_key = "%s_%s" % (resource_type, resource_id)
 
-            if get_resources_per_user(user)[resource_key]:
+            if get_resources_per_user(user).get(resource_key):
                 get_resources_per_user(user)[resource_key]["action"] = event["event"].split("-")[-1]
 
     return "ok"
