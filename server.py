@@ -108,8 +108,8 @@ def presence_webhook():
                     get_users_on_channel(product)[user] = current_status
                     get_channels_per_user(user)[product] = current_status
                 elif status == "offline":
-                    get_users_on_channel(product).pop(user)
-                    get_channels_per_user(user).pop(product)
+                    get_users_on_channel(product).pop(user, None)
+                    get_channels_per_user(user).pop(product, None)
                 pusher_client.trigger("private-user-status-changed-on-%s" % product, 'client-status-changed',
                                       {'user': user, 'status': status})
         elif channel.startswith("presence-users-on-resource-"):
