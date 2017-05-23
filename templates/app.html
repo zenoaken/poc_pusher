@@ -63,7 +63,7 @@
     }
 
     function updateUserConnected(user, status) {
-        if (user == userName) return;
+        if (user == userName || user == 'undefined') return;
 
         var liID = "user-"+user+"-connected";
         var ulID = "connected-users";
@@ -169,7 +169,7 @@
 
     function refreshUsers() {
         var xmlHttp = new XMLHttpRequest();
-
+        $('#connected-users')html("");
         xmlHttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 users = JSON.parse(this.responseText);
