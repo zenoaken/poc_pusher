@@ -9,6 +9,7 @@
   <script src="https://js.pusher.com/4.0/pusher.min.js"></script>
   <script>
     var userName = "";
+    var productName = "";
     var ticketsStatus = new Object();
     var ticketPresenceChannels = new Object();
     var currentStatus = null;
@@ -21,6 +22,8 @@
 
     var pusher = null;
     var ticketPresenceChannelPrefix = "presence-users-on-resource-ticket-";
+    var productPresenceChannelPrefix = "presence-user-on-product-";
+    var userStatusChangePrefix = "private-user-status-changed-on-";
     var usersStatusChannel = null;
 
     $( function() {
@@ -28,12 +31,13 @@
         $( "#menu" ).tabs();
 
         userName = (urlParams.has('user')) ? urlParams.get('user') : prompt("Please enter your name", "");
-        $('#lblStatus').html(userName + " Status:");
+        productName = (urlParams.has('product')) ? urlParams.get('product') : prompt("Please a product name", "");
+        $('#lblStatus').html(userName + " status on " + productName + ":");
         startPusher();
     } );
 
     function statusChanged(newStatus) {
-        usersStatusChannel.trigger('client-status-changed', { user: userName, status: newStatus });
+        usersStatusChannel.trigger('client-status-changed', { user: userName, status: newStatus, product: productName });
     }
 
     function startPusher() {
@@ -48,13 +52,13 @@
           }
         });
 
-        usersStatusChannel = pusher.subscribe("private-user-status-changed");
+        usersStatusChannel = pusher.subscribe(userStatusChangePrefix+productName);
         usersStatusChannel.bind('client-status-changed', function(data) {
             updateUserConnected(data.user, data.status);
         });
 
-        pusher.subscribe("presence-user-"+userName+"-connected");
-        statusChanged('online');
+        pusher.subscribe(productPresenceChannelPrefix+productName+"-"+userName);
+        statusChanged('available');
         refreshUsers();
     }
 
@@ -194,8 +198,10 @@
 
         <br /><br />
         <label id="lblStatus" for="status">Status:</label>
+        <br/>
         <select name="status" id="status" onchange="javascript: statusChanged($(this).val());">
-            <option value="online">Online</option>
+            <option value="available">Available</option>
+            <option value="busy">Busy</option>
             <option value="away">Away</option>
             <option value="meeting">Meeting</option>
             <option value="lunch">Lunch</option>
